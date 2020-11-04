@@ -1,0 +1,138 @@
+#include <zen/bones/framework/bones_framework_registry.hpp>
+#include <iostream>
+
+///
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///
+
+void
+zen::bones::framework_registry::insert(
+    const std::string &name_,
+    const framework_dispatcher_shared &dispatcher_,
+    const factory_function_type &factory
+)
+{
+    std::lock_guard<
+        std::mutex
+    > g(
+        _service_maps_mutex
+    );
+
+    _services[ name_ ] = std::make_pair(
+        dispatcher_,
+        factory
+    );
+}
+
+///
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///
+
+void
+zen::bones::framework_registry::remove(
+    const std::string &name_
+)
+{
+    std::lock_guard<
+        std::mutex
+    > g(
+        _service_maps_mutex
+    );
+
+    auto it = _services.find(
+        name_
+    );
+
+    if( it == _services.end())
+        return;
+
+    _services.erase(
+        it
+    );
+}
+
+///
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///
+
+void
+zen::bones::framework_registry::clear()
+{
+    std::lock_guard<
+        std::mutex
+    > g(
+        _service_maps_mutex
+    );
+
+    _services.clear();
+}
+
+///
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///
+
+zen::bones::framework_dispatcher_shared
+zen::bones::framework_registry::dispatcher(
+    const std::string &name_
+)
+{
+    std::lock_guard<
+        std::mutex
+    > g(
+        _service_maps_mutex
+    );
+
+    auto it = _services.find(
+        name_
+    );
+
+    if( it == _services.end())
+        return nullptr;
+
+    return it->second.first;
+}
+
+///
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///
+
+void
+zen::bones::framework_registry::factory(
+    const std::string &service_name_,
+    const framework_coupling_shared &front_coupling_
+)
+{
+    factory_function_type factory;
+
+    {
+        std::lock_guard<
+            std::mutex
+        > g(
+            _service_maps_mutex
+        );
+
+        auto it = _services.find(
+            service_name_
+        );
+
+        if( it == _services.end())
+            return;
+
+        factory = it->second.second;
+    }
+
+    factory(
+        front_coupling_
+    );
+}
+
+///
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///
+
